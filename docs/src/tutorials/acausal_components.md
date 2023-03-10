@@ -28,13 +28,13 @@ using ModelingToolkit, Plots, DifferentialEquations
     ODESystem(Equation[], t, sts, []; name = name)
 end
 
-function Ground(; name)
+@component function Ground(; name)
     @named g = Pin()
     eqs = [g.v ~ 0]
     compose(ODESystem(eqs, t, [], []; name = name), g)
 end
 
-function OnePort(; name)
+@component function OnePort(; name)
     @named p = Pin()
     @named n = Pin()
     sts = @variables v(t)=1.0 i(t)=1.0
@@ -44,7 +44,7 @@ function OnePort(; name)
     compose(ODESystem(eqs, t, sts, []; name = name), p, n)
 end
 
-function Resistor(; name, R = 1.0)
+@component function Resistor(; name, R = 1.0)
     @named oneport = OnePort()
     @unpack v, i = oneport
     ps = @parameters R = R
@@ -54,7 +54,7 @@ function Resistor(; name, R = 1.0)
     extend(ODESystem(eqs, t, [], ps; name = name), oneport)
 end
 
-function Capacitor(; name, C = 1.0)
+@component function Capacitor(; name, C = 1.0)
     @named oneport = OnePort()
     @unpack v, i = oneport
     ps = @parameters C = C
@@ -65,7 +65,7 @@ function Capacitor(; name, C = 1.0)
     extend(ODESystem(eqs, t, [], ps; name = name), oneport)
 end
 
-function ConstantVoltage(; name, V = 1.0)
+@component function ConstantVoltage(; name, V = 1.0)
     @named oneport = OnePort()
     @unpack v = oneport
     ps = @parameters V = V
@@ -113,7 +113,7 @@ At the top, we start with defining the fundamental qualities of an electric
 circuit component. At every input and output pin, a circuit component has
 two values: the current at the pin and the voltage. Thus we define the `Pin`
 component (connector) to simply be the values there. Whenever two `Pin`s in a
-circuit are connected together, the system satisfies [Kirchhoff's laws](https: //en.wikipedia.org/wiki/Kirchhoff%27s_circuit_laws),
+circuit are connected together, the system satisfies [Kirchhoff's laws](https://en.wikipedia.org/wiki/Kirchhoff%27s_circuit_laws),
 i.e. that currents sum to zero and voltages across the pins are equal.
 `[connect = Flow]` informs MTK that currents ought to sum to zero, and by
 default, variables are equal in a connection.
@@ -149,7 +149,7 @@ this component, we generate an `ODESystem` with a `Pin` subcomponent and specify
 that the voltage in such a `Pin` is equal to zero. This gives:
 
 ```@example acausal
-function Ground(; name)
+@component function Ground(; name)
     @named g = Pin()
     eqs = [g.v ~ 0]
     compose(ODESystem(eqs, t, [], []; name = name), g)
@@ -163,7 +163,7 @@ zero, and the current of the component equals to the current of the positive
 pin.
 
 ```@example acausal
-function OnePort(; name)
+@component function OnePort(; name)
     @named p = Pin()
     @named n = Pin()
     sts = @variables v(t)=1.0 i(t)=1.0
@@ -182,7 +182,7 @@ of charge we know that the current in must equal the current out, which means
 zero. This leads to our resistor equations:
 
 ```@example acausal
-function Resistor(; name, R = 1.0)
+@component function Resistor(; name, R = 1.0)
     @named oneport = OnePort()
     @unpack v, i = oneport
     ps = @parameters R = R
@@ -205,7 +205,7 @@ we can use `@unpack` to avoid the namespacing.
 Using our knowledge of circuits, we similarly construct the `Capacitor`:
 
 ```@example acausal
-function Capacitor(; name, C = 1.0)
+@component function Capacitor(; name, C = 1.0)
     @named oneport = OnePort()
     @unpack v, i = oneport
     ps = @parameters C = C
@@ -223,7 +223,7 @@ constant voltage, essentially generating the electric current. We would then
 model this as:
 
 ```@example acausal
-function ConstantVoltage(; name, V = 1.0)
+@component function ConstantVoltage(; name, V = 1.0)
     @named oneport = OnePort()
     @unpack v = oneport
     ps = @parameters V = V

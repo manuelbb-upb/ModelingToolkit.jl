@@ -10,7 +10,7 @@ using SciMLBase: StandardODEProblem, StandardNonlinearProblem, handle_varmap
 using Distributed
 using StaticArrays, LinearAlgebra, SparseArrays, LabelledArrays
 using InteractiveUtils
-using Latexify, Unitful, ArrayInterfaceCore
+using Latexify, Unitful, ArrayInterface
 using MacroTools
 @reexport using UnPack
 using Setfield, ConstructionBase
@@ -181,6 +181,7 @@ export JumpProblem, DiscreteProblem
 export NonlinearSystem, OptimizationSystem, ConstraintsSystem
 export alias_elimination, flatten
 export connect, @connector, Connection, Flow, Stream, instream
+export @component
 export isinput, isoutput, getbounds, hasbounds, isdisturbance, istunable, getdist, hasdist,
        tunable_parameters, isirreducible, getdescription, hasdescription, isbinaryvar,
        isintegervar

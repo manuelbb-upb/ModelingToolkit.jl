@@ -6,32 +6,8 @@ function get_connection_type(s)
     getmetadata(s, VariableConnectType, Equality)
 end
 
-function with_connector_type(expr)
-    @assert expr isa Expr && (expr.head == :function || (expr.head == :(=) &&
-              expr.args[1] isa Expr &&
-              expr.args[1].head == :call))
-
-    sig = expr.args[1]
-    body = expr.args[2]
-
-    fname = sig.args[1]
-    args = sig.args[2:end]
-
-    quote
-        function $fname($(args...))
-            function f()
-                $body
-            end
-            res = f()
-            $isdefined(res, :connector_type) &&
-                $getfield(res, :connector_type) === nothing ?
-            $Setfield.@set!(res.connector_type=$connector_type(res)) : res
-        end
-    end
-end
-
 macro connector(expr)
-    esc(with_connector_type(expr))
+    esc(component_post_processing(expr, true))
 end
 
 abstract type AbstractConnectorType end
@@ -181,14 +157,42 @@ end
     error("Different types of connectors are in one connection statement: <$(map(nameof, ss))>")
 end
 
+"Return true if the system is a 3D multibody frame, otherwise return false."
+function isframe(sys)
+    sys.metadata isa Dict || return false
+    get(sys.metadata, :frame, false)
+end
+
+"Return orienation object of a multibody frame."
+function ori(sys)
+    if sys.metadata isa Dict && (O = get(sys.metadata, :orientation, nothing)) !== nothing
+        return O
+    else
+        error("System $(sys.name) does not have an orientation object.")
+    end
+end
+
 function connection2set!(connectionsets, namespace, ss, isouter)
     nn = map(nameof, ss)
-    sts1 = Set(states(first(ss)))
+    s1 = first(ss)
+    sts1v = states(s1)
+    if isframe(s1) # Multibody
+        O = ori(s1)
+        orientation_vars = Symbolics.unwrap.(collect(vec(O.R)))
+        sts1v = [sts1v; orientation_vars]
+    end
+    sts1 = Set(sts1v)
     T = ConnectionElement
-    csets = [T[] for _ in 1:length(sts1)]
+    num_statevars = length(sts1)
+    csets = [T[] for _ in 1:num_statevars] # Add 9 orientation variables if connection is between multibody frames
     for (i, s) in enumerate(ss)
         sts = states(s)
-        i != 1 && ((length(sts1) == length(sts) && all(Base.Fix2(in, sts1), sts)) ||
+        if isframe(s) # Multibody
+            O = ori(s)
+            orientation_vars = Symbolics.unwrap.(vec(O.R))
+            sts = [sts; orientation_vars]
+        end
+        i != 1 && ((num_statevars == length(sts) && all(Base.Fix2(in, sts1), sts)) ||
          connection_error(ss))
         io = isouter(s)
         for (j, v) in enumerate(sts)
